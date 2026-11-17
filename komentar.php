@@ -3,11 +3,16 @@
 session_start();
 include 'config/koneksi.php';
 
-if ($_SESSION['status_login'] != true) {
-    echo "<script>alert('Anda belum login!'); window.location='login.php';</script>";
+if (empty($_SESSION['userid'])) {
+    header('Location: login.php');
+    exit;
 }
 
-$fotoid = $_GET['id'];
+$fotoid = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+if (!$fotoid) {
+    header('Location: index.php');
+    exit;
+}
 
 // Logika Tambah Komentar
 if (isset($_POST['kirim_komentar'])) {
@@ -15,17 +20,28 @@ if (isset($_POST['kirim_komentar'])) {
     $userid = $_SESSION['userid'];
     $tanggal = date('Y-m-d');
 
-    $query = mysqli_query($conn, "INSERT INTO gallery_komentarfoto (FotoID, UserID, IsiKomentar, TanggalKomentar) VALUES ('$fotoid', '$userid', '$isi_komentar', '$tanggal')");
+    $query = $conn->prepare(
+        "INSERT INTO gallery_komentarfoto (FotoID, UserID, IsiKomentar, TanggalKomentar) VALUES (?, ?, ?, ?)"
+    );
+    $query->bind_param("iiss", $fotoid, $userid, $isi_komentar, $tanggal);
     
-    if ($query) {
+    if ($query->execute()) {
         // Refresh halaman agar komentar baru langsung muncul
         echo "<script>window.location='komentar.php?id=$fotoid';</script>";
     }
 }
 
 // Ambil detail foto
-$sql_foto = mysqli_query($conn, "SELECT * FROM gallery_foto INNER JOIN gallery_user ON gallery_foto.UserID = gallery_user.UserID WHERE FotoID='$fotoid'");
-$detail = mysqli_fetch_array($sql_foto);
+$sql_foto = $conn->prepare(
+    "SELECT * FROM gallery_foto INNER JOIN gallery_user ON gallery_foto.UserID = gallery_user.UserID WHERE FotoID = ?"
+);
+$sql_foto->bind_param("i", $fotoid);
+$sql_foto->execute();
+$detail = $sql_foto->get_result()->fetch_assoc();
+if (!$detail) {
+    header('Location: index.php');
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -61,10 +77,15 @@ $detail = mysqli_fetch_array($sql_foto);
         <h3 style="margin-top: 30px;">Kolom Komentar</h3>
         <?php
         // Ambil semua komentar untuk foto ini, urutkan dari yang terbaru
-        $sql_komen = mysqli_query($conn, "SELECT gallery_komentarfoto.*, gallery_user.NamaLengkap FROM gallery_komentarfoto INNER JOIN gallery_user ON gallery_komentarfoto.UserID = gallery_user.UserID WHERE FotoID='$fotoid' ORDER BY KomentarID DESC");
+        $sql_komen = $conn->prepare(
+            "SELECT gallery_komentarfoto.*, gallery_user.NamaLengkap FROM gallery_komentarfoto INNER JOIN gallery_user ON gallery_komentarfoto.UserID = gallery_user.UserID WHERE FotoID = ? ORDER BY KomentarID DESC"
+        );
+        $sql_komen->bind_param("i", $fotoid);
+        $sql_komen->execute();
+        $komentar = $sql_komen->get_result();
         
-        if (mysqli_num_rows($sql_komen) > 0) {
-            while ($komen = mysqli_fetch_array($sql_komen)) {
+        if ($komentar->num_rows > 0) {
+            while ($komen = $komentar->fetch_assoc()) {
         ?>
             <div class="komentar-box">
                 <b><?php echo $komen['NamaLengkap']; ?></b> 

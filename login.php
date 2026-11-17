@@ -5,13 +5,17 @@ include 'config/koneksi.php';
 
 if (isset($_POST['login'])) {
     $username = $_POST['Username'];
-    $password = md5($_POST['Password']);
+    $password = $_POST['Password'];
 
-    $query = mysqli_query($conn, "SELECT * FROM gallery_user WHERE Username='$username' AND Password='$password'");
-    $cek = mysqli_num_rows($query);
+    $query = $conn->prepare(
+        "SELECT UserID, Username, Password FROM gallery_user WHERE Username = ? LIMIT 1"
+    );
+    $query->bind_param("s", $username);
+    $query->execute();
+    $data = $query->get_result()->fetch_assoc();
 
-    if ($cek > 0) {
-        $data = mysqli_fetch_array($query);
+    if ($data && password_verify($password, $data['Password'])) {
+        session_regenerate_id(true);
         $_SESSION['userid'] = $data['UserID'];
         $_SESSION['username'] = $data['Username'];
         $_SESSION['status_login'] = true;

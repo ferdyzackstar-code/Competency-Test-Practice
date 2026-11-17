@@ -3,9 +3,9 @@
 session_start();
 include 'config/koneksi.php';
 
-// Proteksi agar user yang belum login tidak bisa masuk
-if ($_SESSION['status_login'] != true) {
-    echo "<script>alert('Anda belum login!'); window.location='login.php';</script>";
+if (empty($_SESSION['userid'])) {
+    header('Location: login.php');
+    exit;
 }
 
 // Logika Tambah Album
@@ -15,9 +15,12 @@ if (isset($_POST['tambah_album'])) {
     $tanggal = date('Y-m-d');
     $userid = $_SESSION['userid'];
 
-    $query = mysqli_query($conn, "INSERT INTO gallery_album (NamaAlbum, Deskripsi, TanggalDibuat, UserID) VALUES ('$nama_album', '$deskripsi', '$tanggal', '$userid')");
+    $query = $conn->prepare(
+        "INSERT INTO gallery_album (NamaAlbum, Deskripsi, TanggalDibuat, UserID) VALUES (?, ?, ?, ?)"
+    );
+    $query->bind_param("sssi", $nama_album, $deskripsi, $tanggal, $userid);
 
-    if ($query) {
+    if ($query->execute()) {
         echo "<script>alert('Album berhasil ditambahkan!'); window.location='album.php';</script>";
     } else {
         echo "<script>alert('Gagal menambah album!');</script>";
@@ -28,9 +31,11 @@ if (isset($_POST['tambah_album'])) {
 if (isset($_GET['hapus'])) {
     $albumid = $_GET['hapus'];
     // Hapus album sesuai ID. Karena di DB kita set CASCADE, foto di dalamnya otomatis ikut terhapus!
-    $query = mysqli_query($conn, "DELETE FROM gallery_album WHERE AlbumID='$albumid'");
+    $userid = $_SESSION['userid'];
+    $query = $conn->prepare("DELETE FROM gallery_album WHERE AlbumID = ? AND UserID = ?");
+    $query->bind_param("ii", $albumid, $userid);
     
-    if ($query) {
+    if ($query->execute()) {
         echo "<script>alert('Album berhasil dihapus!'); window.location='album.php';</script>";
     }
 }
@@ -85,8 +90,11 @@ if (isset($_GET['hapus'])) {
                 <?php
                 $userid = $_SESSION['userid'];
                 $no = 1;
-                $sql = mysqli_query($conn, "SELECT * FROM gallery_album WHERE UserID='$userid'");
-                while ($data = mysqli_fetch_array($sql)) {
+                $sql = $conn->prepare("SELECT * FROM gallery_album WHERE UserID = ?");
+                $sql->bind_param("i", $userid);
+                $sql->execute();
+                $albums = $sql->get_result();
+                while ($data = $albums->fetch_assoc()) {
                 ?>
                 <tr>
                     <td><?php echo $no++; ?></td>

@@ -8,22 +8,33 @@ if (!isset($_SESSION['userid'])) {
     exit;
 }
 
-$fotoid = $_GET['id'];
+$fotoid = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+if (!$fotoid) {
+    header('Location: index.php');
+    exit;
+}
+
 $userid = $_SESSION['userid'];
 $tanggal = date('Y-m-d');
 
 // Cek apakah user sudah pernah like foto ini
-$cek = mysqli_query($conn, "SELECT * FROM gallery_likefoto WHERE FotoID='$fotoid' AND UserID='$userid'");
+$cek = $conn->prepare("SELECT 1 FROM gallery_likefoto WHERE FotoID = ? AND UserID = ?");
+$cek->bind_param("ii", $fotoid, $userid);
+$cek->execute();
 
-if (mysqli_num_rows($cek) > 0) {
+if ($cek->get_result()->num_rows > 0) {
     // Jika sudah like, maka batalkan (Unlike) dengan menghapus datanya
-    mysqli_query($conn, "DELETE FROM gallery_likefoto WHERE FotoID='$fotoid' AND UserID='$userid'");
+    $query = $conn->prepare("DELETE FROM gallery_likefoto WHERE FotoID = ? AND UserID = ?");
+    $query->bind_param("ii", $fotoid, $userid);
+    $query->execute();
 } else {
     // Jika belum like, maka tambahkan ke database
     // Perhatikan urutan value: LikeID (kosongkan agar auto_increment jalan), FotoID, UserID, Tanggal
-    mysqli_query($conn, "INSERT INTO gallery_likefoto (FotoID, UserID, TanggalLike) VALUES ('$fotoid', '$userid', '$tanggal')");
+    $query = $conn->prepare("INSERT INTO gallery_likefoto (FotoID, UserID, TanggalLike) VALUES (?, ?, ?)");
+    $query->bind_param("iis", $fotoid, $userid, $tanggal);
+    $query->execute();
 }
 
-// Kembalikan user ke halaman sebelumnya (entah dari index atau dari detail komentar)
-header("Location: " . $_SERVER['HTTP_REFERER']);
+header('Location: index.php');
+exit;
 ?>

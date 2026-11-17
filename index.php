@@ -4,8 +4,9 @@ session_start();
 include 'config/koneksi.php';
 
 // Pastikan user sudah login
-if ($_SESSION['status_login'] != true) {
-    echo "<script>alert('Anda belum login!'); window.location='login.php';</script>";
+if (empty($_SESSION['userid'])) {
+    header('Location: login.php');
+    exit;
 }
 ?>
 
@@ -36,12 +37,16 @@ if ($_SESSION['status_login'] != true) {
                 $fotoid = $data['FotoID'];
                 
                 // Menghitung jumlah Like
-                $sql_like = mysqli_query($conn, "SELECT * FROM gallery_likefoto WHERE FotoID='$fotoid'");
-                $jumlah_like = mysqli_num_rows($sql_like);
+                $sql_like = $conn->prepare("SELECT COUNT(*) AS total FROM gallery_likefoto WHERE FotoID = ?");
+                $sql_like->bind_param("i", $fotoid);
+                $sql_like->execute();
+                $jumlah_like = $sql_like->get_result()->fetch_assoc()['total'];
 
                 // Menghitung jumlah Komentar
-                $sql_komen = mysqli_query($conn, "SELECT * FROM gallery_komentarfoto WHERE FotoID='$fotoid'");
-                $jumlah_komen = mysqli_num_rows($sql_komen);
+                $sql_komen = $conn->prepare("SELECT COUNT(*) AS total FROM gallery_komentarfoto WHERE FotoID = ?");
+                $sql_komen->bind_param("i", $fotoid);
+                $sql_komen->execute();
+                $jumlah_komen = $sql_komen->get_result()->fetch_assoc()['total'];
             ?>
             <div class="gallery-item">
                 <img src="assets/img/<?php echo $data['LokasiFile']; ?>" alt="<?php echo $data['JudulFoto']; ?>">

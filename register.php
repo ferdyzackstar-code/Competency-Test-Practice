@@ -4,14 +4,17 @@ include 'config/koneksi.php';
 
 if (isset($_POST['register'])) {
     $username = $_POST['Username'];
-    $password = md5($_POST['Password']); // Menggunakan MD5 untuk kemudahan UjiKom, bisa diganti password_hash jika penguji meminta standar tinggi
+    $password = password_hash($_POST['Password'], PASSWORD_DEFAULT);
     $email = $_POST['Email'];
     $namalengkap = $_POST['NamaLengkap'];
     $alamat = $_POST['Alamat'];
 
-    $query = mysqli_query($conn, "INSERT INTO gallery_user (Username, Password, Email, NamaLengkap, Alamat) VALUES ('$username', '$password', '$email', '$namalengkap', '$alamat')");
+    $query = $conn->prepare(
+        "INSERT INTO gallery_user (Username, Password, Email, NamaLengkap, Alamat) VALUES (?, ?, ?, ?, ?)"
+    );
+    $query->bind_param("sssss", $username, $password, $email, $namalengkap, $alamat);
 
-    if ($query) {
+    if ($query->execute()) {
         echo "<script>alert('Registrasi Berhasil! Silakan Login.'); window.location='login.php';</script>";
     } else {
         echo "<script>alert('Registrasi Gagal!');</script>";
