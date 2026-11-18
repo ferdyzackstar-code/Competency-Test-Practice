@@ -3,12 +3,15 @@
 $host = "localhost";
 $name = "root";
 $pass = "";
-$db = "db_galeri";
+$dbname = "db_galeri";
 
-$conn = mysqli_connect($host, $name, $pass, $db);
+$dsn = "mysql:host=$host;dbname=$dbname";
 
-if (!$conn) {
-    die("Koneksi Database Gagal: " . mysqli_connect_error());
+try {
+    $pdo = new PDO($dsn, $name, $pass);
+    //echo "Koneksi Database Berhasil!";
+} catch (\PDOException $e) {
+    die("Koneksi Gagal: " . $e->getMessage());
 }
 
 ?>

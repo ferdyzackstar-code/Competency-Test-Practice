@@ -22,21 +22,17 @@ if (isset($_POST['tambah_foto'])) {
     $nama_foto = rand() . '-' . $foto;
     $lokasi = 'assets/img/';
 
-    $albumCheck = $conn->prepare("SELECT AlbumID FROM gallery_album WHERE AlbumID = ? AND UserID = ?");
-    $albumCheck->bind_param("ii", $albumid, $userid);
-    $albumCheck->execute();
+    $albumCheck = $pdo->prepare("SELECT AlbumID FROM gallery_album WHERE AlbumID = ? AND UserID = ?");
+    $albumCheck->execute([$albumid, $userid]);
 
-    $albumResult = $albumCheck->get_result();
-    $albumExists = $albumResult->num_rows > 0;
-    $albumResult->free();
-    $albumCheck->close();
+    $albumExists = $albumCheck->fetch();
+
 
     if ($albumExists && move_uploaded_file($tmp, $lokasi . $nama_foto)) {
-        $query = $conn->prepare(
+        $query = $pdo->prepare(
             "INSERT INTO gallery_foto (JudulFoto, DeskripsiFoto, TanggalUnggah, LokasiFile, AlbumID, UserID) VALUES (?, ?, ?, ?, ?, ?)"
         );
-        $query->bind_param("ssssii", $judul, $deskripsi, $tanggal, $nama_foto, $albumid, $userid);
-        if ($query->execute()) {
+        if ($query->execute([$judul, $deskripsi, $tanggal, $nama_foto, $albumid, $userid])) {
             echo "<script>alert('Foto berhasil diunggah!'); window.location='foto.php';</script>";
         } else {
             unlink($lokasi . $nama_foto);
@@ -52,22 +48,16 @@ if (isset($_POST['edit_foto'])) {
     $deskripsi = $_POST['DeskripsiFoto'];
     $albumid = $_POST['AlbumID'];
 
-    $albumCheck = $conn->prepare("SELECT AlbumID FROM gallery_album WHERE AlbumID = ? AND UserID = ?");
-    $albumCheck->bind_param("ii", $albumid, $userid);
-    $albumCheck->execute();
+    $albumCheck = $pdo->prepare("SELECT AlbumID FROM gallery_album WHERE AlbumID = ? AND UserID = ?");
+    $albumCheck->execute([$albumid,$userid]);
 
-    $albumResult = $albumCheck->get_result();
-    $albumExists = $albumResult->num_rows > 0;
-    $albumResult->free();
-    $albumCheck->close();
-
+    $albumResult = $albumCheck->fetch();
     if ($albumExists) {
-        $query = $conn->prepare(
+        $query = $pdo->prepare(
             "UPDATE gallery_foto SET JudulFoto = ?, DeskripsiFoto = ?, AlbumID = ? WHERE FotoID = ? AND UserID = ?"
         );
-        $query->bind_param("ssiii", $judul, $deskripsi, $albumid, $fotoid, $userid);
 
-        if ($query->execute()) {
+        if ($query->execute([$judul, $deskripsi, $albumid, $fotoid, $userid])) {
             echo "<script>alert('Data foto berhasil diperbarui!'); window.location='foto.php';</script>";
         }
     }
@@ -76,23 +66,18 @@ if (isset($_POST['edit_foto'])) {
 // 3. LOGIKA HAPUS FOTO
 if (isset($_GET['hapus'])) {
     $fotoid = $_GET['hapus'];
-    $query = $conn->prepare("SELECT LokasiFile FROM gallery_foto WHERE FotoID = ? AND UserID = ?");
-    $query->bind_param("ii", $fotoid, $userid);
-    $query->execute();
-    $result = $query->get_result();
-    $data = $result->fetch_assoc();
-    $result->free();
-    $query->close();
+    $query = $pdo->prepare("SELECT LokasiFile FROM gallery_foto WHERE FotoID = ? AND UserID = ?");
+    $query->execute([$fotoid,$userid]);
+    $result = $query->fetch();
 
-    if ($data) {
-        $nama_file = $data['LokasiFile'];
+    if ($result) {
+        $nama_file = $result['LokasiFile'];
         if (is_file('assets/img/' . $nama_file)) {
             unlink('assets/img/' . $nama_file);
         }
 
-        $delete = $conn->prepare("DELETE FROM gallery_foto WHERE FotoID = ? AND UserID = ?");
-        $delete->bind_param("ii", $fotoid, $userid);
-        $delete->execute();
+        $delete = $pdo->prepare("DELETE FROM gallery_foto WHERE FotoID = ? AND UserID = ?");
+        $delete->execute([$fotoid,$userid]);
         echo "<script>alert('Foto berhasil dihapus!'); window.location='foto.php';</script>";
     }
 }
@@ -104,15 +89,11 @@ if (isset($_GET['edit'])) {
         exit;
     }
 
-    $query_edit = $conn->prepare("SELECT * FROM gallery_foto WHERE FotoID = ? AND UserID = ?");
-    $query_edit->bind_param("ii", $fotoid, $userid);
-    $query_edit->execute();
-    $editResult = $query_edit->get_result();
-    $data_edit = $editResult->fetch_assoc();
-    $editResult->free();
-    $query_edit->close();
+    $query_edit = $pdo->prepare("SELECT * FROM gallery_foto WHERE FotoID = ? AND UserID = ?");
+    $query_edit->execute([$fotoid, $userid]);
+    $editResult = $query_edit->fetch();
 
-    if (!$data_edit) {
+    if (!$editResult) {
         header('Location: foto.php');
         exit;
     }
@@ -142,26 +123,24 @@ if (isset($_GET['edit'])) {
         ?>
             <!-- TAMPILAN FORM EDIT -->
             <form method="POST" action="">
-                <input type="hidden" name="FotoID" value="<?php echo $data_edit['FotoID']; ?>">
+                <input type="hidden" name="FotoID" value="<?php echo $editResult['FotoID']; ?>">
                 <div class="form-group">
                     <label>Judul Foto</label>
-                    <input type="text" name="JudulFoto" class="form-control" value="<?php echo $data_edit['JudulFoto']; ?>" required>
+                    <input type="text" name="JudulFoto" class="form-control" value="<?php echo $editResult['JudulFoto']; ?>" required>
                 </div>
                 <div class="form-group">
                     <label>Deskripsi Foto</label>
-                    <textarea name="DeskripsiFoto" class="form-control" required><?php echo $data_edit['DeskripsiFoto']; ?></textarea>
+                    <textarea name="DeskripsiFoto" class="form-control" required><?php echo $editResult['DeskripsiFoto']; ?></textarea>
                 </div>
                 <div class="form-group">
                     <label>Pindah Album</label>
                     <select name="AlbumID" class="form-control" required>
                         <?php
-                        $sql_album = $conn->prepare("SELECT * FROM gallery_album WHERE UserID = ?");
-                        $sql_album->bind_param("i", $userid);
-                        $sql_album->execute();
-                        $albums = $sql_album->get_result();
-                        while ($album = $albums->fetch_assoc()) {
+                        $sql_album = $pdo->prepare("SELECT * FROM gallery_album WHERE UserID = ?");
+                        $sql_album->execute([$userid]);
+                        while ($album = $sql_album->fetch()) {
                             // Cek jika album ini adalah album foto tersebut, maka berikan atribut 'selected'
-                            $selected = ($album['AlbumID'] == $data_edit['AlbumID']) ? 'selected' : '';
+                            $selected = ($album['AlbumID'] == $editResult['AlbumID']) ? 'selected' : '';
                             echo "<option value='".$album['AlbumID']."' $selected>".$album['NamaAlbum']."</option>";
                         }
                         ?>
@@ -188,11 +167,9 @@ if (isset($_GET['edit'])) {
                     <select name="AlbumID" class="form-control" required>
                         <option value="">-- Pilih Album --</option>
                         <?php
-                        $sql_album = $conn->prepare("SELECT * FROM gallery_album WHERE UserID = ?");
-                        $sql_album->bind_param("i", $userid);
-                        $sql_album->execute();
-                        $albums = $sql_album->get_result();
-                        while ($album = $albums->fetch_assoc()) {
+                        $sql_album = $pdo->prepare("SELECT * FROM gallery_album WHERE UserID = ?");
+                        $sql_album->execute([$userid]);
+                        while ($album = $sql_album->fetch()) {
                             echo "<option value='".$album['AlbumID']."'>".$album['NamaAlbum']."</option>";
                         }
                         ?>
@@ -226,11 +203,9 @@ if (isset($_GET['edit'])) {
             <tbody>
                 <?php
                 $no = 1;
-                $sql = $conn->prepare("SELECT gallery_foto.*, gallery_album.NamaAlbum FROM gallery_foto INNER JOIN gallery_album ON gallery_foto.AlbumID = gallery_album.AlbumID WHERE gallery_foto.UserID = ?");
-                $sql->bind_param("i", $userid);
-                $sql->execute();
-                $fotos = $sql->get_result();
-                while ($data = $fotos->fetch_assoc()) {
+                $sql = $pdo->prepare("SELECT gallery_foto.*, gallery_album.NamaAlbum FROM gallery_foto INNER JOIN gallery_album ON gallery_foto.AlbumID = gallery_album.AlbumID WHERE gallery_foto.UserID = ?");
+                $sql->execute([$userid]);
+                while ($data = $sql->fetch()) {
                 ?>
                 <tr>
                     <td><?php echo $no++; ?></td>

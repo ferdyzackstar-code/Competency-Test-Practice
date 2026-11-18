@@ -7,12 +7,11 @@ if (isset($_POST['login'])) {
     $username = $_POST['Username'];
     $password = $_POST['Password'];
 
-    $query = $conn->prepare(
+    $query = $pdo->prepare(
         "SELECT UserID, Username, Password FROM gallery_user WHERE Username = ? LIMIT 1"
     );
-    $query->bind_param("s", $username);
-    $query->execute();
-    $data = $query->get_result()->fetch_assoc();
+    $query->execute([$username]);
+    $data = $query->fetch();
 
     if ($data && password_verify($password, $data['Password'])) {
         session_regenerate_id(true);

@@ -18,21 +18,19 @@ $userid = $_SESSION['userid'];
 $tanggal = date('Y-m-d');
 
 // Cek apakah user sudah pernah like foto ini
-$cek = $conn->prepare("SELECT 1 FROM gallery_likefoto WHERE FotoID = ? AND UserID = ?");
-$cek->bind_param("ii", $fotoid, $userid);
-$cek->execute();
+$cek = $pdo->prepare("SELECT 1 FROM gallery_likefoto WHERE FotoID = ? AND UserID = ?");
+$cek->execute([$fotoid, $userid]);
+$sudah_like = $cek->fetch();
 
-if ($cek->get_result()->num_rows > 0) {
+if ($sudah_like) {
     // Jika sudah like, maka batalkan (Unlike) dengan menghapus datanya
-    $query = $conn->prepare("DELETE FROM gallery_likefoto WHERE FotoID = ? AND UserID = ?");
-    $query->bind_param("ii", $fotoid, $userid);
-    $query->execute();
+    $query = $pdo->prepare("DELETE FROM gallery_likefoto WHERE FotoID = ? AND UserID = ?");
+    $query->execute([$fotoid, $userid]);
 } else {
     // Jika belum like, maka tambahkan ke database
     // Perhatikan urutan value: LikeID (kosongkan agar auto_increment jalan), FotoID, UserID, Tanggal
-    $query = $conn->prepare("INSERT INTO gallery_likefoto (FotoID, UserID, TanggalLike) VALUES (?, ?, ?)");
-    $query->bind_param("iis", $fotoid, $userid, $tanggal);
-    $query->execute();
+    $query = $pdo->prepare("INSERT INTO gallery_likefoto (FotoID, UserID, TanggalLike) VALUES (?, ?, ?)");
+    $query->execute([$fotoid, $userid, $tanggal]);
 }
 
 header('Location: index.php');

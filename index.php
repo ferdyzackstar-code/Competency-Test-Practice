@@ -31,22 +31,20 @@ if (empty($_SESSION['userid'])) {
         <div class="gallery-grid">
             <?php
             // Mengambil semua data foto beserta nama pengunggahnya (JOIN ke tabel user)
-            $sql = mysqli_query($conn, "SELECT gallery_foto.*, gallery_user.NamaLengkap FROM gallery_foto INNER JOIN gallery_user ON gallery_foto.UserID = gallery_user.UserID ORDER BY gallery_foto.FotoID DESC");
-            
-            while ($data = mysqli_fetch_array($sql)) {
+            $sql = $pdo->prepare("SELECT gallery_foto.*, gallery_user.NamaLengkap FROM gallery_foto INNER JOIN gallery_user ON gallery_foto.UserID = gallery_user.UserID ORDER BY gallery_foto.FotoID DESC");
+            $sql->execute();
+            while ($data = $sql->fetch()) {
                 $fotoid = $data['FotoID'];
                 
                 // Menghitung jumlah Like
-                $sql_like = $conn->prepare("SELECT COUNT(*) AS total FROM gallery_likefoto WHERE FotoID = ?");
-                $sql_like->bind_param("i", $fotoid);
-                $sql_like->execute();
-                $jumlah_like = $sql_like->get_result()->fetch_assoc()['total'];
+                $sql_like = $pdo->prepare("SELECT COUNT(*) AS total FROM gallery_likefoto WHERE FotoID = ?");
+                $sql_like->execute([$fotoid]);
+                $jumlah_like = $sql_like->fetch()['total'];
 
                 // Menghitung jumlah Komentar
-                $sql_komen = $conn->prepare("SELECT COUNT(*) AS total FROM gallery_komentarfoto WHERE FotoID = ?");
-                $sql_komen->bind_param("i", $fotoid);
-                $sql_komen->execute();
-                $jumlah_komen = $sql_komen->get_result()->fetch_assoc()['total'];
+                $sql_komen = $pdo->prepare("SELECT COUNT(*) AS total FROM gallery_komentarfoto WHERE FotoID = ?");
+                $sql_komen->execute([$fotoid]);
+                $jumlah_komen = $sql_komen->fetch()['total'];
             ?>
             <div class="gallery-item">
                 <img src="assets/img/<?php echo $data['LokasiFile']; ?>" alt="<?php echo $data['JudulFoto']; ?>">

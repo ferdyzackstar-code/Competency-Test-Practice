@@ -15,12 +15,11 @@ if (isset($_POST['tambah_album'])) {
     $tanggal = date('Y-m-d');
     $userid = $_SESSION['userid'];
 
-    $query = $conn->prepare(
+    $query = $pdo->prepare(
         "INSERT INTO gallery_album (NamaAlbum, Deskripsi, TanggalDibuat, UserID) VALUES (?, ?, ?, ?)"
     );
-    $query->bind_param("sssi", $nama_album, $deskripsi, $tanggal, $userid);
 
-    if ($query->execute()) {
+    if ($query->execute([$nama_album, $deskripsi, $tanggal, $userid])) {
         echo "<script>alert('Album berhasil ditambahkan!'); window.location='album.php';</script>";
     } else {
         echo "<script>alert('Gagal menambah album!');</script>";
@@ -32,10 +31,9 @@ if (isset($_GET['hapus'])) {
     $albumid = $_GET['hapus'];
     // Hapus album sesuai ID. Karena di DB kita set CASCADE, foto di dalamnya otomatis ikut terhapus!
     $userid = $_SESSION['userid'];
-    $query = $conn->prepare("DELETE FROM gallery_album WHERE AlbumID = ? AND UserID = ?");
-    $query->bind_param("ii", $albumid, $userid);
+    $query = $pdo->prepare("DELETE FROM gallery_album WHERE AlbumID = ? AND UserID = ?");
     
-    if ($query->execute()) {
+    if ($query->execute([$albumid, $userid])) {
         echo "<script>alert('Album berhasil dihapus!'); window.location='album.php';</script>";
     }
 }
@@ -90,11 +88,9 @@ if (isset($_GET['hapus'])) {
                 <?php
                 $userid = $_SESSION['userid'];
                 $no = 1;
-                $sql = $conn->prepare("SELECT * FROM gallery_album WHERE UserID = ?");
-                $sql->bind_param("i", $userid);
-                $sql->execute();
-                $albums = $sql->get_result();
-                while ($data = $albums->fetch_assoc()) {
+                $sql = $pdo->prepare("SELECT * FROM gallery_album WHERE UserID = ?");
+                $sql->execute([$userid]);
+                while ($data = $sql->fetch()) {
                 ?>
                 <tr>
                     <td><?php echo $no++; ?></td>
