@@ -52,9 +52,8 @@ if (empty($_SESSION['userid'])) {
                 <p style="font-size: 12px; color: #666;">Oleh: <?php echo $data['NamaLengkap']; ?></p>
                 
                 <div class="action-links">
-                    <!-- Menggunakan HTML Entity &#10084; untuk icon Love tanpa butuh internet -->
-                    <a href="like.php?id=<?php echo $fotoid; ?>" style="color: red;">&#10084; <?php echo $jumlah_like; ?> Suka</a>
-                    <a href="komentar.php?id=<?php echo $fotoid; ?>" style="color: blue;">&#128172; <?php echo $jumlah_komen; ?> Komentar</a>
+                    <a href="like.php?id=<?php echo $fotoid; ?>" style="color: red;">❤️ <?php echo $jumlah_like; ?> Suka</a>
+                    <a href="komentar.php?id=<?php echo $fotoid; ?>" style="color: blue;">💬 <?php echo $jumlah_komen; ?> Komentar</a>
                 </div>
             </div>
             <?php } ?>

@@ -52,7 +52,7 @@ if (isset($_POST['edit_foto'])) {
     $albumCheck->execute([$albumid,$userid]);
 
     $albumResult = $albumCheck->fetch();
-    if ($albumExists) {
+    if ($albumResult) {
         $query = $pdo->prepare(
             "UPDATE gallery_foto SET JudulFoto = ?, DeskripsiFoto = ?, AlbumID = ? WHERE FotoID = ? AND UserID = ?"
         );

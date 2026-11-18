@@ -1,5 +1,4 @@
 <?php
-
 include 'config/koneksi.php';
 
 if (isset($_POST['register'])) {
@@ -9,9 +8,15 @@ if (isset($_POST['register'])) {
     $namalengkap = $_POST['NamaLengkap'];
     $alamat = $_POST['Alamat'];
 
-    
+    $query = $pdo->prepare(
+        "INSERT INTO gallery_user (Username, Password, Email, NamaLengkap, Alamat) VALUES (?, ?, ?, ?, ?)"
+    );
+    if ($query->execute([$username, $password, $email, $namalengkap, $alamat])) {
+        echo "<script>alert('Registrasi Berhasil! Silakan Login.'); window.location='login.php';</script>";
+    } else {
+        echo "<script>alert('Registrasi Gagal!');</script>";
+    }
 }
-
 ?>
 
 <!DOCTYPE html>
